@@ -29,11 +29,11 @@ void test01()
 	printf("3\n");
 	printf("1 0 2.5 0 0 10\n");//asn: 3
 	printf("10 0 11 0 0 10\n");//ans: 0
-	printf("1 0 4 0 0 20\n");//ans: 3	
+	printf("1 0 4 0 0 20\n");//ans: 3
 }
 
 //all path (instead one of them) will be in the last query
-void test02() 
+void test02()
 {
 	printf("1\n");
 	printf("5\n");
@@ -62,7 +62,7 @@ void test03()
 }
 
 //start and end of the path is the same in query(q1 & q2)
-void test04() 
+void test04()
 {
 	printf("1\n");
 	printf("7\n");
@@ -115,20 +115,20 @@ void test07()
 	int c = 10;
 	int l = 2;
 	int r = 5;
-	
+
 	printf("1\n");
 	printf("%d\n", n);
-	for (int i = 0; i < n; i++) 
+	for (int i = 0; i < n; i++)
 	{
 		printf("%d %d 0\n", i, c + i);
 		if ((c + i) % 5 == 0)
 		{
 			c += 10;
-		}	
+		}
 	}
-	
+
 	printf("%d\n", q);
-	for (int i = 0; i < q; i++) 
+	for (int i = 0; i < q; i++)
 	{
 		printf("%d 0 %d 0 0 %d\n", i + l, i + r, n);
 	}
@@ -142,7 +142,7 @@ void test08()
 	int maxRange = 4;
 	int minRange = 2;
 	int s = 0;
-	
+
 	printf("1\n");
 	printf("%d\n", n);
 	for (int i = 0; i < n; i++)
@@ -153,11 +153,11 @@ void test08()
 		if (s % 3 == 0)
 			s -= 20;
 	}
-	
+
 	int l = 15;
 	int r = 20;
 	printf("%d\n", q);
-	for (int i = 0; i < q; i++) 
+	for (int i = 0; i < q; i++)
 	{
 		printf("%d 0 %d 0 0 %d\n", l, r, n);
 		if (i % 10 == 0)
@@ -165,7 +165,7 @@ void test08()
 			l -= 15;
 			r -= 15;
 		}
-		else 
+		else
 		{
 			l += 10;
 			r += 10;
@@ -173,7 +173,7 @@ void test08()
 	}
 }
 
-static void test09() 
+static void test09()
 {
 	printf("100\n");
  	for (int i = 0; i< 100 ;i++)
@@ -187,28 +187,28 @@ static void test09()
           j= j+2;
         }
 	}
-	
+
   	printf("1\n");
  	printf("0 0 1 0 0 100\n");
 }
 
 //tests by considering time limits
 //a test with two way
-static void test10() 
+static void test10()
 {
 	printf("2\n");
-  
+
   	printf("4\n");
   	printf("0 0 0\n");
   	printf("5 4 0\n");
   	printf("15 5 0\n");
   	printf("25 -3 0\n");
-  
+
   	printf("3\n");
   	printf("5 -10 0\n");
   	printf("15 10 0\n");
   	printf("25 -10 0\n");
-  
+
   	printf("4\n");
   	printf("0 0 4 0 0 10\n");
   	printf("4 0 5 0 0 22\n");
@@ -217,66 +217,67 @@ static void test10()
 }
 
 //in middle of time and in middle of the path
-static void test11() 
+static void test11()
 {
-	printf("1\n"); 
+	printf("1\n");
   	printf("4\n");
   	printf("1 4 0\n");
   	printf("5 -7 0\n");
   	printf("7 11 0\n");
-  	
+
   	printf("2\n");
   	printf("0 0 2 0 4 6\n");
   	printf("4 0 5 0 2 7\n");
 }
 
 //in middle of time and at the edge of the path
-static void test12() 
+static void test12()
 {
-	printf("1\n");  
+	printf("1\n");
   	printf("5\n");
   	printf("0 0 0\n");
   	printf("12 10 0\n");
   	printf("13 6 0\n");
   	printf("14 5 0\n");
   	printf("15 0 0\n");
-  	
+
   	printf("3\n");
   	printf("0 0 10 0 0 14\n");//ans: 1
   	printf("5 0 6 0 13 15\n");//ans: 1
   	printf("1 0 2 0 4 14\n");//ans: 0
 }
 
-int main() 
+int main(int argc, char *argv[])
 {
-	int testNumeber = 0;
-	
-	scanf("%d", &testNumeber);
-	
-	if (testNumeber == 0)
+	int num;
+	if (argc != 2)
+		return 1;
+	num = atoi(argv[1]);
+	if (num == 0)
 		test00();
-	else if (testNumeber == 1)
+	else if (num == 1)
 		test01();
-	else if (testNumeber == 2)
+	else if (num == 2)
 		test02();
-	else if (testNumeber == 3)
+	else if (num == 3)
 		test03();
-	else if (testNumeber == 4)
+	else if (num == 4)
 		test04();
-	else if (testNumeber == 5)
+	else if (num == 5)
 		test05();
-	else if (testNumeber == 6)
+	else if (num == 6)
 		test06();
-	else if (testNumeber == 7)
+	else if (num == 7)
 		test07();
-	else if (testNumeber == 8)
+	else if (num == 8)
 		test08();
-	else if (testNumeber == 9)
+	else if (num == 9)
 		test09();
-	else if (testNumeber == 10)
+	else if (num == 10)
 		test10();
-	else if (testNumeber == 11)
+	else if (num == 11)
 		test11();
-	else if (testNumeber == 12)
+	else if (num == 12)
 		test12();
+	return 0;
 }
