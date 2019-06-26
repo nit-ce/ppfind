@@ -26,10 +26,10 @@ int main()
 {
 	int i, j;//counters
 	int numberOfPaths, numberOfNodes, numberOfQueries;
-	int multiPath;//a variable to specify we we have one path or more
+	int multiPath = 0;//a variable to specify we we have one path or more
 	
-	printf("single path: 0 \nmulti path: 1\n");
-	scanf("%d", &multiPath);	
+//	printf("single path: 0 \nmulti path: 1\n");
+//	scanf("%d", &multiPath);	
 		
 	scanf("%d", &numberOfPaths);
 	struct path paths[numberOfPaths];
@@ -62,8 +62,41 @@ int main()
 	
 	if (multiPath == 0)//if we have one path
 		oneDimention_singlePath(paths ,queries, numberOfNodes, numberOfQueries);
- 	else if (multiPath == 1)//if we have more than one path
-	 oneDimention_multiPath(paths ,queries, numberOfPaths, numberOfNodes, numberOfQueries);
+// 	else if (multiPath == 1)//if we have more than one path
+//	    oneDimention_multiPath(paths ,queries, numberOfPaths, numberOfNodes, numberOfQueries);
+}
+
+void oneDimention_singlePath(struct path paths[100],struct query queries[100], int numberOfNodes, int numberOfQueries) 
+{
+	int i, j, z;
+	int count[100] = {0};
+	
+	for (j = 0; j < numberOfQueries; j++)//for each query
+	{
+		for (z = 0; z < numberOfNodes - 1; z++)//for each two node of a way  
+		{
+			if (paths[0].pathNodes[z].x < paths[0].pathNodes[z + 1].x)
+			{	
+				if (paths[0].pathNodes[z].x < queries[j].xR && paths[0].pathNodes[z + 1].x > queries[j].xL)				
+				{
+					count[j]++;
+				}
+			}
+			else if (paths[0].pathNodes[z].x > paths[0].pathNodes[z + 1].x)
+			{
+				if (paths[0].pathNodes[z].x > queries[j].xL && paths[0].pathNodes[z + 1].x < queries[j].xR)				
+				{
+					count[j]++;
+				}
+			}
+		}
+	}
+	
+	//print answers
+	for (i = 0; i < numberOfQueries; i++) 
+	{
+		printf("%d\n", count[i]);
+	}
 }
 
 void oneDimention_multiPath(struct path paths[100],struct query queries[100], int numberOfpaths, int numberOfNodes, int numberOfQueries) 
@@ -95,39 +128,6 @@ void oneDimention_multiPath(struct path paths[100],struct query queries[100], in
 			}
 		}
 	}
-	
-	//print answers
-	for (i = 0; i < numberOfQueries; i++) 
-	{
-		printf("%d\n", count[i]);
-	}
-}
-
-void oneDimention_singlePath(struct path paths[100],struct query queries[100], int numberOfNodes, int numberOfQueries) 
-{
-	int i, j, z;
-	int count[100] = {0};
-	
-	for (j = 0; j < numberOfQueries; j++)//for each query
-		{
-			for (z = 0; z < numberOfNodes - 1; z++)//for each two node of a way  
-			{
-				if (paths[0].pathNodes[z].x < paths[0].pathNodes[z + 1].x)
-				{	
-					if (paths[0].pathNodes[z].x < queries[j].xR && paths[0].pathNodes[z + 1].x > queries[j].xL)				
-					{
-						count[j]++;
-					}
-				}
-				else if (paths[0].pathNodes[z].x > paths[0].pathNodes[z + 1].x)
-				{
-					if (paths[0].pathNodes[z].x > queries[j].xL && paths[0].pathNodes[z + 1].x < queries[j].xR)				
-					{
-						count[j]++;
-					}
-				}
-			}
-		}
 	
 	//print answers
 	for (i = 0; i < numberOfQueries; i++) 
