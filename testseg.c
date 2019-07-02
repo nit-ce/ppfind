@@ -32,12 +32,19 @@ static int test0(void)
 {
 	long beg[] = {2, 8, 9};
 	long end[] = {5, 10, 9};
+	int ret0[] = {};
 	int ret3[] = {0};
 	int ret9[] = {1, 2};
 	seg = seg_init(3, beg, end);
+	if (test_search(seg, 0, ret0, 0))
+		return 1;
 	if (test_search(seg, 3, ret3, 1))
 		return 1;
+	if (test_search(seg, 7, ret0, 0))
+		return 1;
 	if (test_search(seg, 9, ret9, 2))
+		return 1;
+	if (test_search(seg, 12, ret0, 0))
 		return 1;
 	seg_free(seg);
 	return 0;
