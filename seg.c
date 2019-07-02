@@ -1,21 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "seg.h"
 
 /* the index of the parent, left, and right nodes of a segment tree node */
-#define NPARENT(n)	(((n) - 1) / 2)
 #define NLEFT(n)	((n) * 2 + 1)
 #define NRIGHT(n)	((n) * 2 + 2)
+
 #define INF		0x7fffffff
 
 struct seg {
 	int n;		/* number of segments */
-	int ncnt;	/* the number of nodes */
-	long *nbeg;	/* the key assigned to each node */
-	long *nend;	/* the key assigned to each node */
-	void **ndat;	/* the data for each node */
-	int **nset;	/* the set of segments for each node (zero terminated) */
-	int *nlen;	/* the length of nset entries */
+	int nodes;	/* number of nodes */
+	long *nbeg;	/* key assigned to each node */
+	long *nend;	/* key assigned to each node */
+	void **ndat;	/* data for each node */
+	int **nset;	/* set of segments for each node (zero terminated) */
+	int *ncnt;	/* number of nset entries */
+	int *nlen;	/* maximum length of nset entries */
 };
 
 /* the ceiling of integer logarithm base two (n > 0) */
@@ -39,12 +41,13 @@ static void seg_build(struct seg *seg, int *pts, int npts)
 	int nodes = (1 << (height + 1)) - 1;	/* # of tree nodes */
 	int lastrow_idx = (1 << height) - 1;	/* index of the left-most node of the last level */
 	int i, j;
-	seg->ncnt = nodes;
+	seg->nodes = nodes;
 	seg->nbeg = calloc(nodes, sizeof(seg->nbeg[0]));
 	seg->nend = calloc(nodes, sizeof(seg->nend[0]));
 	seg->ndat = calloc(nodes, sizeof(seg->ndat[0]));
 	seg->nset = calloc(nodes, sizeof(seg->nset[0]));
 	seg->nlen = calloc(nodes, sizeof(seg->nlen[0]));
+	seg->ncnt = calloc(nodes, sizeof(seg->ncnt[0]));
 	/* initialize nbeg and nend for nodes at the last level */
 	j = lastrow_idx;
 	seg->nbeg[j] = -INF;
@@ -59,7 +62,7 @@ static void seg_build(struct seg *seg, int *pts, int npts)
 	}
 	seg->nbeg[j] = pts[npts - 1];
 	seg->nend[j++] = INF;
-	for (; j < seg->ncnt; j++) {
+	for (; j < seg->nodes; j++) {
 		seg->nbeg[j] = INF;
 		seg->nend[j] = INF;
 	}
@@ -70,13 +73,26 @@ static void seg_build(struct seg *seg, int *pts, int npts)
 	}
 }
 
+static void *mextend(void *old, long oldsz, long newsz, int memsz)
+{
+	void *new = malloc(newsz * memsz);
+	memcpy(new, old, oldsz * memsz);
+	free(old);
+	return new;
+}
+
 static void seg_insert(struct seg *seg, int node, int id, long beg, long end)
 {
 	if (seg->nbeg[node] >= beg && seg->nend[node] <= end) {
-		if (!seg->nset[node])
-			seg->nset[node] = calloc(seg->n + 1, sizeof(seg->nset[node][0]));
-		seg->nset[node][seg->nlen[node]++] = id;
-	} else if (seg->nbeg[node] <= end && seg->nend[node] >= beg && NLEFT(node) < seg->ncnt) {
+		if (seg->ncnt[node] == seg->nlen[node]) {
+			int oldlen = seg->nlen[node];
+			int len = oldlen ? oldlen * 2 : 8;
+			seg->nset[node] = mextend(seg->nset[node], oldlen,
+					len, sizeof(seg->nset[node][0]));
+			seg->nlen[node] = len;
+		}
+		seg->nset[node][seg->ncnt[node]++] = id;
+	} else if (seg->nbeg[node] <= end && seg->nend[node] >= beg && NLEFT(node) < seg->nodes) {
 		seg_insert(seg, NLEFT(node), id, beg, end);
 		seg_insert(seg, NRIGHT(node), id, beg, end);
 	}
@@ -135,18 +151,18 @@ void seg_nodeput(struct seg *seg, int node, void *data)
 int seg_nodeset(struct seg *seg, int node, int **set, int *cnt)
 {
 	*set = seg->nset[node];
-	*cnt = seg->nlen[node];
+	*cnt = seg->ncnt[node];
 	return seg->nset[node] == NULL;
 }
 
-/* Search for value x (node should be -1 initially) */
+/* Search for value x at a node */
 int seg_nodesearch(struct seg *seg, int node, int x, void (*cb)(int node))
 {
 	if (seg->nbeg[node] <= x && seg->nend[node] >= x)
 		cb(node);
-	if (NLEFT(node) < seg->ncnt)
+	if (NLEFT(node) < seg->nodes)
 		seg_nodesearch(seg, NLEFT(node), x, cb);
-	if (NRIGHT(node) < seg->ncnt)
+	if (NRIGHT(node) < seg->nodes)
 		seg_nodesearch(seg, NRIGHT(node), x, cb);
 	return 0;
 }
@@ -162,12 +178,13 @@ void seg_search(struct seg *seg, int x, void (*cb)(int node))
 void seg_free(struct seg *seg)
 {
 	int i;
-	for (i = 0; i < seg->ncnt; i++)
+	for (i = 0; i < seg->nodes; i++)
 		free(seg->nset[i]);
 	free(seg->nbeg);
 	free(seg->nend);
 	free(seg->ndat);
 	free(seg->nset);
+	free(seg->ncnt);
 	free(seg->nlen);
 	free(seg);
 }
