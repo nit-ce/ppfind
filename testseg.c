@@ -28,7 +28,34 @@ static int test_search(struct seg *seg, int x, int *exp, int n)
 	return 0;
 }
 
-static int test0(void)
+static int test1(void)
+{
+	long beg[] = {0, 2, 3, 4, 5, -3};
+	long end[] = {9, 9, 7, 6, 5, -2};
+	int ret0[] = {0};
+	int ret2[] = {0, 1};
+	int ret5[] = {0, 1, 2, 3, 4};
+	int ret8[] = {0, 1};
+	int ret_2[] = {5};
+	int ret_1[] = {5};
+	seg = seg_init(6, beg, end);
+	if (test_search(seg, 0, ret0, 1))
+		return 1;
+	if (test_search(seg, 2, ret2, 2))
+		return 1;
+	if (test_search(seg, 5, ret5, 5))
+		return 1;
+	if (test_search(seg, 8, ret8, 2))
+		return 1;
+	if (test_search(seg, -2, ret_2, 1))
+		return 1;
+	if (test_search(seg, -1, ret_1, 0))
+		return 1;
+	seg_free(seg);
+	return 0;
+}
+
+static int test2(void)
 {
 	long beg[] = {2, 8, 9};
 	long end[] = {5, 10, 9};
@@ -52,7 +79,9 @@ static int test0(void)
 
 int main(void)
 {
-	if (test0())
+	if (test1())
 		return 1;
+	if (test2())
+		return 2;
 	return 0;
 }
