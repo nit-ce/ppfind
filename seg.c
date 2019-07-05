@@ -159,7 +159,8 @@ int seg_nodeset(struct seg *seg, int node, int **set, int *cnt)
 int seg_nodesearch(struct seg *seg, int node, int x, void (*cb)(int node))
 {
 	if (seg->nbeg[node] <= x && seg->nend[node] >= x)
-		cb(node);
+		if (seg->ncnt[node])
+			cb(node);
 	if (NLEFT(node) < seg->nodes)
 		seg_nodesearch(seg, NLEFT(node), x, cb);
 	if (NRIGHT(node) < seg->nodes)
