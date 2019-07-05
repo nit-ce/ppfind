@@ -74,13 +74,17 @@ static int count_visits(struct path *path, struct query *query)
 	int cnt = 0;		/* visit count */
 	int i;
 	for (i = 0; i < path->n - 1; i++) {
-		if (path->nodes[i].x < path->nodes[i + 1].x) {
-			if (path->nodes[i].x < query->urx && path->nodes[i + 1].x > query->llx)
-				cnt++;
-		} else if (path->nodes[i].x > path->nodes[i + 1].x) {
-			if (path->nodes[i].x > query->llx && path->nodes[i + 1].x < query->urx)
-				cnt++;
+		long x1 = path->nodes[i].x;
+		long x2 = path->nodes[i + 1].x;
+		if (x1 > x2) {
+			long t = x1;
+			x1 = x2;
+			x2 = t;
 		}
+		if (x1 <= query->llx && x2 >= query->llx)
+			cnt += x2 >= query->urx ? 2 : 1;
+		if (x1 > query->llx && x1 <= query->urx && x2 >= query->urx)
+			cnt++;
 	}
-	return cnt;
+	return cnt / 2;
 }
