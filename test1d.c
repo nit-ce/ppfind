@@ -27,7 +27,7 @@ void test01()
 	printf("4 5 0\n");
 	printf("5 10 0\n");
 	printf("3\n");
-	printf("1 0 2.5 0 0 10\n");//asn: 3
+	printf("1 0 2 0 0 10\n");//asn: 3
 	printf("10 0 11 0 0 10\n");//ans: 0
 	printf("1 0 4 0 0 20\n");//ans: 3
 }
@@ -176,20 +176,17 @@ void test08()
 static void test09()
 {
 	printf("100\n");
- 	for (int i = 0; i< 100 ;i++)
-	{
-   		printf("99\n");
-    	for(int j = 0; j<99 ; j++)
-    	{
-          printf("%d 0 0\n", i);
-          printf("%d 0 1\n", i+1);
-          printf("%d 0 0\n" ,i+2);
-          j= j+2;
-        }
+	for (int i = 0; i < 100; i++) {
+		printf("99\n");
+		for(int j = 0; j<99 ; j++) {
+			printf("%d 0 0\n", i);
+			printf("%d 0 1\n", i+1);
+			printf("%d 0 0\n" ,i+2);
+			j= j+2;
+		}
 	}
-
-  	printf("1\n");
- 	printf("0 0 1 0 0 100\n");
+	printf("1\n");
+	printf("0 0 1 0 0 100\n");
 }
 
 //tests by considering time limits
