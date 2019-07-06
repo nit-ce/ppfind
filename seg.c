@@ -12,8 +12,8 @@
 struct seg {
 	int n;		/* number of segments */
 	int nodes;	/* number of nodes */
-	long *nbeg;	/* key assigned to each node */
-	long *nend;	/* key assigned to each node */
+	long *nbeg;	/* node interval start */
+	long *nend;	/* node interval end */
 	void **ndat;	/* data for each node */
 	int **nset;	/* set of segments for each node (zero terminated) */
 	int *ncnt;	/* number of nset entries */
