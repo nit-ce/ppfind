@@ -21,12 +21,15 @@ struct query {
 
 static int count_visits(struct path *path, struct query *query);
 
-int main(void)
+int main(int argc, char *argv[])
 {
 	int numberOfPaths, numberOfQueries;
 	struct path *paths;
 	struct query *queries;
+	int restrict_duration = 0;	/* restrict the duration of visits */
 	int i, j;
+	if (argc > 1 && atoi(argv[1]) > 0)
+		restrict_duration = 1;
 
 	/* read input trajectories */
 	scanf("%d", &numberOfPaths);
