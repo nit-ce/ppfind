@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "seg.h"
 
 static struct seg *seg;
@@ -15,6 +16,11 @@ static void visit(int node)
 			out[outcnt++] = set[i];
 }
 
+static int intcmp(const void *a, const void *b)
+{
+	return *(int *) a - *(int *) b;
+}
+
 static int test_search(struct seg *seg, int x, int *exp, int n)
 {
 	int i;
@@ -22,6 +28,7 @@ static int test_search(struct seg *seg, int x, int *exp, int n)
 	seg_search(seg, x, visit);
 	if (outcnt != n)
 		return 1;
+	qsort(out, outcnt, sizeof(out[0]), intcmp);
 	for (i = 0; i < n; i++)
 		if (out[i] != exp[i])
 			return 1;
