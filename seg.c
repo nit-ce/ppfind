@@ -156,22 +156,22 @@ int seg_nodeset(struct seg *seg, int node, int **set, int *cnt)
 }
 
 /* Search for value x at a node */
-int seg_nodesearch(struct seg *seg, int node, int x, void (*cb)(int node))
+int seg_nodesearch(struct seg *seg, int node, long x, void (*cb)(int node))
 {
-	if (seg->nbeg[node] <= x && seg->nend[node] >= x)
+	if (seg->nbeg[node] <= x && seg->nend[node] >= x) {
 		if (seg->ncnt[node])
 			cb(node);
-	if (NLEFT(node) < seg->nodes)
-		seg_nodesearch(seg, NLEFT(node), x, cb);
-	if (NRIGHT(node) < seg->nodes)
-		seg_nodesearch(seg, NRIGHT(node), x, cb);
+		if (NLEFT(node) < seg->nodes)
+			seg_nodesearch(seg, NLEFT(node), x, cb);
+		if (NRIGHT(node) < seg->nodes)
+			seg_nodesearch(seg, NRIGHT(node), x, cb);
+	}
 	return 0;
 }
 
 /* Search for value x; call cb for every matching segment tree node */
-void seg_search(struct seg *seg, int x, void (*cb)(int node))
+void seg_search(struct seg *seg, long x, void (*cb)(int node))
 {
-
 	seg_nodesearch(seg, 0, x, cb);
 }
 
