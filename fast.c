@@ -50,12 +50,12 @@ static long intersection(struct path *path, int edge, long mintime,
 	if (x1 < x2 && x1 > llx && x2 > urx)
 		tx1 = t1 + (urx - x1) * (t2 - t1) / (x2 - x1);
 	if (x1 < x2 && x1 < llx && x2 > urx)		/* double intersection */
-		tx2 = t1 + (ury - x1) * (t2 - t1) / (x2 - x1);
+		tx2 = t1 + (urx - x1) * (t2 - t1) / (x2 - x1);
 	if (x1 > x2 && x1 > urx)
 		tx1 = t1 + (x1 - urx) * (t2 - t1) / (x1 - x2);
 	if (x1 > x2 && x1 < urx && x2 < llx)
 		tx1 = t1 + (x1 - llx) * (t2 - t1) / (x1 - x2);
-	if (x1 > x2 && x2 > urx && x2 < llx)		/* double intersection */
+	if (x1 > x2 && x2 < llx && x1 > urx)		/* double intersection */
 		tx2 = t1 + (x1 - llx) * (t2 - t1) / (x1 - x2);
 	if (tx1 > mintime)
 		return tx1;
@@ -65,7 +65,7 @@ static long intersection(struct path *path, int edge, long mintime,
 }
 
 static long first_visit(struct path *path, struct seg *seg, long ts,
-		long llx, long lly, long urx, long ury)
+		int qid, long llx, long lly, long urx, long ury)
 {
 	long best_ts = -1;
 	void visit_node(int node)
@@ -73,15 +73,18 @@ static long first_visit(struct path *path, struct seg *seg, long ts,
 		int *set;
 		int cnt;
 		if (!seg_nodeset(seg, node, &set, &cnt)) {
-			long idx = (long) seg_nodeget(seg, node);
+			long dat = (long) seg_nodeget(seg, node);
+			int dat_qid = dat >> 24;
+			int idx = dat_qid == qid ? dat & 0xffffffl : 0;
 			for (; idx < cnt; idx++) {
 				long tx = intersection(path, set[idx], ts, llx, lly, urx, ury);
 				if (tx > 0 && (best_ts <= 0 || tx < best_ts))
 					best_ts = tx;
-				if (tx)
+				if (tx > 0)
 					break;
 			}
-			seg_nodeput(seg, node, (void *) idx);
+			dat = ((long) qid << 24) | (long) idx;
+			seg_nodeput(seg, node, (void *) dat);
 		}
 	}
 	seg_search(seg, llx, visit_node);
@@ -96,15 +99,17 @@ static int count_visits_duration(struct path *path, struct seg *seg,
 	long leave_ts;
 	long last_ts = 0;
 	int cnt = 0;
+	static int qid = 0;		/* query identifier */
 	while (1) {
-		if ((enter_ts = first_visit(path, seg, last_ts, llx, lly, urx, ury)) < 0)
+		if ((enter_ts = first_visit(path, seg, last_ts, qid, llx, lly, urx, ury)) < 0)
 			break;
-		if ((leave_ts = first_visit(path, seg, enter_ts, llx, lly, urx, ury)) < 0)
+		if ((leave_ts = first_visit(path, seg, enter_ts, qid, llx, lly, urx, ury)) < 0)
 			break;
 		if (leave_ts - enter_ts >= minT && leave_ts - enter_ts <= maxT)
 			cnt++;
 		last_ts = leave_ts;
 	}
+	qid++;
 	return cnt;
 }
 
