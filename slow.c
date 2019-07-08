@@ -21,6 +21,7 @@ struct query {
 
 static int count_visits(struct path *path, struct query *query);
 static int sensitive_count_visits(struct path *path, struct query *query);
+static long timeRatio(long lDiff, long rDiff, long dist, long time);
 
 int main(int argc, char *argv[])
 {
@@ -31,7 +32,7 @@ int main(int argc, char *argv[])
 	int i, j;
 	if (argc > 1 && atoi(argv[1]) > 0)
 		restrict_duration = 1;
-	
+
 	/* read input trajectories */
 	scanf("%d", &numberOfPaths);
 	paths = malloc(numberOfPaths * sizeof(paths[0]));
@@ -112,7 +113,7 @@ static int sensitive_count_visits(struct path *path, struct query *query)
 		long t1 = path->nodes[i].t;
 		long t2 = path->nodes[i + 1].t;
 		long time = t2 - t1;
-		long dist, outOfQry, inOfQry, insideTR, outsideTR;
+		long dist;
 		long rDiff, lDiff;
 		 
 		if (x1 > x2) {
@@ -130,10 +131,7 @@ static int sensitive_count_visits(struct path *path, struct query *query)
 			if (rDiff < 0) 
 				rDiff = 0;
 			
-			outOfQry = lDiff + rDiff;
-			inOfQry = dist - outOfQry;
-			outsideTR = (outOfQry * time) / dist;
-			insideTR = time - outsideTR;
+			long insideTR = timeRatio(lDiff, rDiff, dist, time);
 	
 			if (insideTR >= query->minT && insideTR <= query->maxT)
 				cnt++;	
@@ -143,14 +141,23 @@ static int sensitive_count_visits(struct path *path, struct query *query)
 			lDiff = 0;
 			rDiff = x2 - query->urx;
 			
-			outOfQry = lDiff + rDiff;
-			inOfQry = dist - outOfQry;
-			outsideTR = (outOfQry * time) / dist;
-			insideTR = time - outsideTR;
+			long insideTR = timeRatio(lDiff, rDiff, dist, time);
 			
 			if (insideTR >= query->minT && insideTR <= query->maxT)
 				cnt++;			
 		}
 	}
 	return cnt;
+}
+
+static long timeRatio(long lDiff, long rDiff, long dist, long time)
+{
+	long outOfQry, inOfQry, insideTR, outsideTR;
+	
+	outOfQry = lDiff + rDiff;
+	inOfQry = dist - outOfQry;
+	outsideTR = (outOfQry * time) / dist;
+	insideTR = time - outsideTR;
+	
+	return insideTR;
 }
