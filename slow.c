@@ -30,6 +30,7 @@ int main(int argc, char *argv[])
 	struct query *queries;
 	int restrict_duration = 0;	/* restrict the duration of visits */
 	int i, j;
+
 	if (argc > 1 && atoi(argv[1]) > 0)
 		restrict_duration = 1;
 
@@ -102,7 +103,7 @@ static int count_visits(struct path *path, struct query *query)
 	}
 	return cnt;
 }
-
+//find answers according to the timw
 static int sensitive_count_visits(struct path *path, struct query *query)
 {
 	int cnt = 0;		/* visit count */
@@ -110,11 +111,10 @@ static int sensitive_count_visits(struct path *path, struct query *query)
 	for (i = 0; i < path->n - 1; i++) {
 		long x1 = path->nodes[i].x;
 		long x2 = path->nodes[i + 1].x;
-		long t1 = path->nodes[i].t;
-		long t2 = path->nodes[i + 1].t;
-		long time = t2 - t1;
-		long dist;
-		long rDiff, lDiff;
+		long t1 = path->nodes[i].t;		/*start time*/
+		long t2 = path->nodes[i + 1].t;		/*finsish time*/
+		long time = t2 - t1;	/*difference between start and finsih times*/
+		long dist rDiff, lDiff;		/*lDiff: store distance difference between query.llx and path.node[i].x | rDiff: store distance difference between query.urx and path.node[i+1].x*/
 		 
 		if (x1 > x2) {
 			long t = x1;
@@ -131,7 +131,7 @@ static int sensitive_count_visits(struct path *path, struct query *query)
 			if (rDiff < 0) 
 				rDiff = 0;
 			
-			long insideTR = timeRatio(lDiff, rDiff, dist, time);
+			long insideTR = timeRatio(lDiff, rDiff, dist, time);	/*store time ratio: howmuch time it is inside the query zone*/
 	
 			if (insideTR >= query->minT && insideTR <= query->maxT)
 				cnt++;	
@@ -150,6 +150,7 @@ static int sensitive_count_visits(struct path *path, struct query *query)
 	return cnt;
 }
 
+/*calculate howmuch time it is outside query zone and return howmuch time was inside the query zone*/
 static long timeRatio(long lDiff, long rDiff, long dist, long time)
 {
 	long outOfQry, inOfQry, insideTR, outsideTR;
