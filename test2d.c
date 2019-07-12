@@ -1,8 +1,8 @@
-/* tests for one-dimensional trajectories */
+	/* tests for one-dimensional trajectories */
 #include <stdio.h>
 #include <stdlib.h>
 
-static void test00(void) 
+static void test00(void)
 {
 	printf("1\n");
 	printf("5\n");
@@ -18,7 +18,7 @@ static void test00(void)
 	printf("5 -1 7 1 20 30");
 }
 
-static void test01(void) 
+static void test01(void) 	/*start and end will be the same*/
 {
 	printf("1\n");
 	printf("5\n");
@@ -34,7 +34,7 @@ static void test01(void)
 	printf("6 0 7 1 0 5");
 }
 
-static void test02(void) 
+static void test02(void)	/**/
 {
 	printf("1\n");
 	printf("8\n");
@@ -53,7 +53,7 @@ static void test02(void)
 	printf("1 -3 6 0 0 5");
 }
 
-static void test03(void) 
+static void test03(void) 	/*all path on the edges*/
 {
 	printf("1\n");
 	printf("4\n");
@@ -66,7 +66,7 @@ static void test03(void)
 	printf("2 -2 4 2 0 10");
 }
 
-static void test04(void) 
+static void test04(void)	/*never enter the query but will arrive at the vertices and turn back and won't cut the edges*/ 
 {
 	printf("1\n");
 	printf("9\n");
@@ -84,7 +84,7 @@ static void test04(void)
 	printf("1 1 3 2 0 10");
 }
 
-static void test05(void) 
+static void test05(void) 	/*enter from one edge and exit from another adge*/
 {
 	printf("1\n");
 	printf("6\n");
@@ -99,7 +99,7 @@ static void test05(void)
 	printf("1 1 3 3 0 10");
 }
 
-static void test06(void) 
+static void test06(void) 	/*enter from one vertex and exit from another verterx*/
 {
 	printf("1\n");
 	printf("10\n");
@@ -118,7 +118,7 @@ static void test06(void)
 	printf("1 1 3 3 0 10");
 }
 
-static void test07(void) 
+static void test07(void) 	/*the path will finish in the query*/
 {
 	printf("1\n");
 	printf("4\n");
