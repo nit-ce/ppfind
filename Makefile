@@ -2,7 +2,7 @@ CC = cc
 CFLAGS = -Wall -O2
 LDFLAGS =
 
-all: test1d testseg slow fast
+all: test1d testseg slow fast test2d
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $<
