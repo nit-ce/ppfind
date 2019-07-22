@@ -13,6 +13,6 @@ done
 for x in 11 12
 do
 	./test1d $x | ./slow 1 >$TDIR/t1
-	./test1d $x | ./fast 1 >$TDIR/t2
+	./test1d $x | ./fast -d >$TDIR/t2
 	cmp -s $TDIR/t1 $TDIR/t2 || echo "outputs differ for case $x"
 done
