@@ -131,6 +131,19 @@ static void test07(void) 	/* the path will finish in the query */
 	printf("1 1 3 3 0 10");
 }
 
+static void test08(void)
+{
+	printf("1\n");
+	printf("2\n");
+	printf("1 0 0\n");
+	printf("2 10 10\n");
+	printf("4\n");
+	printf("0 10 1 11 0 100\n");
+	printf("2 2 4 4 0 100\n");
+	printf("3 2 7 10 0 100\n");
+	printf("1 3 10 4 0 100\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int num;
@@ -153,6 +166,7 @@ int main(int argc, char *argv[])
 		test06();
 	else if (num == 7)
 		test07();
-
+	else if (num == 8)
+		test08();
 	return 0;
 }
