@@ -5,6 +5,8 @@
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
 #define MAX(a, b)	((a) < (b) ? (b) : (a))
 
+static int twodims = 0;		/* two dimensional trajectories */
+
 /* a trajectory node */
 struct node {
 	long x, y, t;
@@ -64,6 +66,49 @@ static long intersection(struct path *path, int edge, long mintime,
 	return -1;
 }
 
+static int crossnorm(long ax, long ay, long bx, long by)
+{
+	long cross = (ax * by) - (ay * bx);
+	if (!cross)
+		return 0;
+	return cross > 0 ? 1 : -1;
+}
+
+static long segmentsintersection(long ax, long ay, long bx, long by, long cx, long cy, long dx, long dy, long t1, long t2)
+{
+	if (crossnorm(bx - ax, by - ay, cx - ax, cy - ay) == crossnorm(bx - ax, by - ay, dx - ax, dy - ay))
+		return -1;
+	if (crossnorm(dx - cx, dy - cy, ax - cx, ay - cy) == crossnorm(dx - cx, dy - cy, bx - cx, by - cy))
+		return -1;
+	if (ax == bx && dx != cx)
+		return (t2 - t1) * (ax - cx) / (dx - cx);
+	if (ay == by && dy != cy)
+		return (t2 - t1) * (ay - cy) / (dy - cy);
+	return -1;
+}
+
+static long intersection2d(struct path *path, int edge, long mintime,
+		long llx, long lly, long urx, long ury)
+{
+	long x1 = path->nodes[edge].x;
+	long x2 = path->nodes[edge + 1].x;
+	long y1 = path->nodes[edge].y;
+	long y2 = path->nodes[edge + 1].y;
+	long t1 = path->nodes[edge].t;
+	long t2 = path->nodes[edge + 1].t;
+	long txmin = -1;
+	long tx[4];
+	int i;
+	tx[0] = segmentsintersection(llx, lly, urx, lly, x1, y1, x2, y2, t1, t2);
+	tx[1] = segmentsintersection(llx, lly, llx, ury, x1, y1, x2, y2, t1, t2);
+	tx[2] = segmentsintersection(llx, ury, urx, ury, x1, y1, x2, y2, t1, t2);
+	tx[3] = segmentsintersection(urx, lly, urx, ury, x1, y1, x2, y2, t1, t2);
+	for (i = 0; i < 4; i++)
+		if (tx[i] > mintime && (txmin <= 0 || tx[i] < txmin))
+			txmin = tx[i];
+	return txmin;
+}
+
 static long first_visit(struct path *path, struct seg *seg, long ts,
 		int qid, long llx, long lly, long urx, long ury)
 {
@@ -77,7 +122,11 @@ static long first_visit(struct path *path, struct seg *seg, long ts,
 			int dat_qid = dat >> 24;
 			int idx = dat_qid == qid ? dat & 0xffffffl : 0;
 			for (; idx < cnt; idx++) {
-				long tx = intersection(path, set[idx], ts, llx, lly, urx, ury);
+				long tx;
+				if (twodims)
+					tx = intersection2d(path, set[idx], ts, llx, lly, urx, ury);
+				else
+					tx = intersection(path, set[idx], ts, llx, lly, urx, ury);
 				if (tx > 0 && (best_ts <= 0 || tx < best_ts))
 					best_ts = tx;
 				if (tx > 0)
@@ -120,9 +169,18 @@ int main(int argc, char *argv[])
 	struct seg **segs;		/* one segment tree for each trajectory */
 	int restrict_duration = 0;	/* restrict the duration of visits */
 	int i, j;
-	if (argc > 1 && atoi(argv[1]) > 0)
+	for (i = 0; i < argc; i++) {
+		if (argv[i][0] == '-' && argv[i][1] == 'd')
+			restrict_duration = 1;
+		if (argv[i][0] == '-' && argv[i][1] == '2')
+			twodims = 1;
+		if (argv[i][0] == '-' && argv[i][1] == 'h') {
+			printf("%s [-d] [-2]", argv[0]);
+			return 0;
+		}
+	}
+	if (twodims)
 		restrict_duration = 1;
-
 	/* read input trajectories */
 	scanf("%d", &npaths);
 	paths = malloc(npaths * sizeof(paths[0]));
