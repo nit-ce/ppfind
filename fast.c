@@ -175,7 +175,10 @@ int main(int argc, char *argv[])
 		if (argv[i][0] == '-' && argv[i][1] == '2')
 			twodims = 1;
 		if (argv[i][0] == '-' && argv[i][1] == 'h') {
-			printf("%s [-d] [-2]", argv[0]);
+			printf("Usage: %s options <input >output\n\n", argv[0]);
+			printf("Options:\n");
+			printf("  -d \t\t apply visit duration restrictions\n");
+			printf("  -2 \t\t two-dimensional trajectories\n");
 			return 0;
 		}
 	}
