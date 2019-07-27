@@ -21,7 +21,6 @@ struct query {
 
 static int count_visits(struct path *path, struct query *query);
 static int sensitive_count_visits(struct path *path, struct query *query);
-static long timeRatio(long lDiff, long rDiff, long dist, long time);
 
 int main(int argc, char *argv[])
 {
@@ -31,9 +30,10 @@ int main(int argc, char *argv[])
 	int restrict_duration = 0;	/* restrict the duration of visits */
 	int i, j;
 
-	if (argc > 1 && atoi(argv[1]) > 0)
-		restrict_duration = 1;
-
+	for (i = 0; i < argc; i++) {
+		if (argv[i][0] == '-' && argv[i][1] == 'd')
+			restrict_duration = 1;
+	}
 	/* read input trajectories */
 	scanf("%d", &numberOfPaths);
 	paths = malloc(numberOfPaths * sizeof(paths[0]));
@@ -98,13 +98,12 @@ static int count_visits(struct path *path, struct query *query)
 		}
 		if (x1 <= query->llx && x2 >= query->llx)
 			cnt++;
-		if (x1 > query->llx && x1 <= query->urx && x2 >= query->urx)
+		if (x1 > query->llx && x1 <= query->urx)
 			cnt++;
 	}
 	return cnt;
 }
 
-/* find answers according to the time */
 static int sensitive_count_visits(struct path *path, struct query *query)
 {
 	int cnt = 0;		/* visit count */
@@ -112,54 +111,54 @@ static int sensitive_count_visits(struct path *path, struct query *query)
 	for (i = 0; i < path->n - 1; i++) {
 		long x1 = path->nodes[i].x;
 		long x2 = path->nodes[i + 1].x;
-		long t1 = path->nodes[i].t;		/* start time */
-		long t2 = path->nodes[i + 1].t;		/* finsish time */
-		long time = t2 - t1;		/* difference between start and finsih times */
-		long dist, rDiff, lDiff;	/* lDiff: store distance difference between query.llx and path.node[i].x | rDiff: store distance difference between query.urx and path.node[i+1].x */
+		long t1 = path->nodes[i].t;
+		long t2 = path->nodes[i + 1].t;
+		long time = t2 - t1;
+		long dist, outOfQry, inOfQry, insideTR, outsideTR;
+		long rDiff, lDiff;
 
-		if (x1 > x2) {
-			long t = x1;
-			x1 = x2;
-			x2 = t;
-		}
-		dist = x2 - x1;
+		if (x1 <= query->llx && x2 >= query->llx && x2 >= query->urx) {
 
-		if (x1 <= query->llx && x2 >= query->llx) {
+			if (x1 > x2) {
+				long t = x1;
+				x1 = x2;
+				x2 = t;
+			}
+			dist = x2 - x1;
 
 			lDiff = query->llx - x1;
 			rDiff = x2 - query->urx;
 
 			if (rDiff < 0)
 				rDiff = 0;
-			/* store time ratio: how much time it is inside the query zone */
-			long insideTR = timeRatio(lDiff, rDiff, dist, time);
+
+			outOfQry = lDiff + rDiff;
+			inOfQry = dist - outOfQry;
+			outsideTR = (outOfQry * time) / dist;
+			insideTR = time - outsideTR;
 
 			if (insideTR >= query->minT && insideTR <= query->maxT)
 				cnt++;
 		}
 		if (x1 > query->llx && x1 <= query->urx && x2 >= query->urx) {
+			if (x1 > x2) {
+				long t = x1;
+				x1 = x2;
+				x2 = t;
+			}
+			dist = x2 - x1;
 
 			lDiff = 0;
 			rDiff = x2 - query->urx;
 
-			long insideTR = timeRatio(lDiff, rDiff, dist, time);
+			outOfQry = lDiff + rDiff;
+			inOfQry = dist - outOfQry;
+			outsideTR = (outOfQry * time) / dist;
+			insideTR = time - outsideTR;
 
 			if (insideTR >= query->minT && insideTR <= query->maxT)
 				cnt++;
 		}
 	}
 	return cnt;
-}
-
-/* calculate how much time it is outside query zone and return how much time was inside the query zone */
-static long timeRatio(long lDiff, long rDiff, long dist, long time)
-{
-	long outOfQry, inOfQry, insideTR, outsideTR;
-
-	outOfQry = lDiff + rDiff;
-	inOfQry = dist - outOfQry;
-	outsideTR = (outOfQry * time) / dist;
-	insideTR = time - outsideTR;
-
-	return insideTR;
 }
