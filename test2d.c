@@ -144,6 +144,19 @@ static void test08(void)
 	printf("1 3 10 4 0 100\n");
 }
 
+static void test09(void)
+{
+	printf("1\n");
+	printf("5\n");
+	printf("1 0 0\n");
+	printf("2 10 10\n");
+	printf("3 20 0\n");
+	printf("4 30 10\n");
+	printf("5 40 0\n");
+	printf("1\n");
+	printf("0 5 50 15 0 100\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int num;
@@ -168,5 +181,7 @@ int main(int argc, char *argv[])
 		test07();
 	else if (num == 8)
 		test08();
+	else if (num == 9)
+		test09();
 	return 0;
 }
