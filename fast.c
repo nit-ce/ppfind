@@ -18,7 +18,7 @@ struct path {
 	int n;
 };
 
-static int count_visits(struct path *path, struct seg *seg,
+static int count_visits(struct path *path, struct seg *xseg, struct seg *yseg,
 		long llx, long lly, long urx, long ury, long minT, long maxT)
 {
 	int visit_cnt = 0;
@@ -26,11 +26,11 @@ static int count_visits(struct path *path, struct seg *seg,
 	{
 		int *set;
 		int cnt;
-		if (!seg_nodeset(seg, node, &set, &cnt))
+		if (!seg_nodeset(xseg, node, &set, &cnt))
 			visit_cnt += cnt;
 	}
-	seg_search(seg, llx, visit_node);
-	seg_search(seg, urx, visit_node);
+	seg_search(xseg, llx, visit_node);
+	seg_search(xseg, urx, visit_node);
 	return visit_cnt >> 1;
 }
 
@@ -81,9 +81,9 @@ static long segmentsintersection(long ax, long ay, long bx, long by, long cx, lo
 	if (crossnorm(dx - cx, dy - cy, ax - cx, ay - cy) == crossnorm(dx - cx, dy - cy, bx - cx, by - cy))
 		return -1;
 	if (ax == bx && dx != cx)
-		return (t2 - t1) * (ax - cx) / (dx - cx);
+		return t1 + (t2 - t1) * (ax - cx) / (dx - cx);
 	if (ay == by && dy != cy)
-		return (t2 - t1) * (ay - cy) / (dy - cy);
+		return t1 + (t2 - t1) * (ay - cy) / (dy - cy);
 	return -1;
 }
 
@@ -109,10 +109,11 @@ static long intersection2d(struct path *path, int edge, long mintime,
 	return txmin;
 }
 
-static long first_visit(struct path *path, struct seg *seg, long ts,
+static long first_visit(struct path *path, struct seg *xseg, struct seg *yseg, long ts,
 		int qid, long llx, long lly, long urx, long ury)
 {
 	long best_ts = -1;
+	struct seg *seg;
 	void visit_node(int node)
 	{
 		int *set;
@@ -136,12 +137,18 @@ static long first_visit(struct path *path, struct seg *seg, long ts,
 			seg_nodeput(seg, node, (void *) dat);
 		}
 	}
-	seg_search(seg, llx, visit_node);
-	seg_search(seg, urx, visit_node);
+	seg = xseg;
+	seg_search(xseg, llx, visit_node);
+	seg_search(xseg, urx, visit_node);
+	if (yseg) {
+		seg = yseg;
+		seg_search(yseg, lly, visit_node);
+		seg_search(yseg, ury, visit_node);
+	}
 	return best_ts;
 }
 
-static int count_visits_duration(struct path *path, struct seg *seg,
+static int count_visits_duration(struct path *path, struct seg *xseg, struct seg *yseg,
 		long llx, long lly, long urx, long ury, long minT, long maxT)
 {
 	long enter_ts;
@@ -150,9 +157,11 @@ static int count_visits_duration(struct path *path, struct seg *seg,
 	int cnt = 0;
 	static int qid = 0;		/* query identifier */
 	while (1) {
-		if ((enter_ts = first_visit(path, seg, last_ts, qid, llx, lly, urx, ury)) < 0)
+		if ((enter_ts = first_visit(path, xseg, yseg, last_ts,
+						qid, llx, lly, urx, ury)) < 0)
 			break;
-		if ((leave_ts = first_visit(path, seg, enter_ts, qid, llx, lly, urx, ury)) < 0)
+		if ((leave_ts = first_visit(path, xseg, yseg, enter_ts,
+						qid, llx, lly, urx, ury)) < 0)
 			break;
 		if (leave_ts - enter_ts >= minT && leave_ts - enter_ts <= maxT)
 			cnt++;
@@ -166,7 +175,8 @@ int main(int argc, char *argv[])
 {
 	int npaths, nqueries;
 	struct path *paths;		/* input trajectories */
-	struct seg **segs;		/* one segment tree for each trajectory */
+	struct seg **xsegs;		/* one segment tree for each trajectory */
+	struct seg **ysegs;		/* one segment tree for each trajectory */
 	int restrict_duration = 0;	/* restrict the duration of visits */
 	int i, j;
 	for (i = 0; i < argc; i++) {
@@ -199,7 +209,8 @@ int main(int argc, char *argv[])
 	}
 
 	/* construct the segment trees */
-	segs = malloc(npaths * sizeof(segs[0]));
+	xsegs = malloc(npaths * sizeof(xsegs[0]));
+	ysegs = malloc(npaths * sizeof(ysegs[0]));
 	for (i = 0; i < npaths; i++) {
 		long *beg, *end;
 		beg = malloc(paths[i].n * sizeof(beg[0]));
@@ -210,7 +221,14 @@ int main(int argc, char *argv[])
 			beg[j] = x1 < x2 ? x1 : x2;
 			end[j] = x1 < x2 ? x2 : x1;
 		}
-		segs[i] = seg_init(paths[i].n, beg, end);
+		xsegs[i] = seg_init(paths[i].n, beg, end);
+		for (j = 0; j < paths[i].n - 1; j++) {
+			long y1 = paths[i].nodes[j].y;
+			long y2 = paths[i].nodes[j + 1].y;
+			beg[j] = y1 < y2 ? y1 : y2;
+			end[j] = y1 < y2 ? y2 : y1;
+		}
+		ysegs[i] = twodims ? seg_init(paths[i].n, beg, end) : NULL;
 		free(beg);
 		free(end);
 	}
@@ -225,10 +243,10 @@ int main(int argc, char *argv[])
 			scanf("%ld %ld %ld %ld", &llx, &lly, &urx, &ury);
 			scanf("%ld %ld", &minT, &maxT);
 			if (restrict_duration) {
-				visits += count_visits_duration(&paths[j], segs[j],
+				visits += count_visits_duration(&paths[j], xsegs[j], ysegs[j],
 					llx, lly, urx, ury, minT * 1000, maxT * 1000);
 			} else {
-				visits += count_visits(&paths[j], segs[j],
+				visits += count_visits(&paths[j], xsegs[j], ysegs[j],
 					llx, lly, urx, ury, minT * 1000, maxT * 1000);
 			}
 		}
@@ -237,7 +255,9 @@ int main(int argc, char *argv[])
 
 	/* release allocated memory */
 	for (i = 0; i < npaths; i++)
-		seg_free(segs[i]);
+		seg_free(xsegs[i]);
+	for (i = 0; i < npaths; i++)
+		seg_free(ysegs[i]);
 	for (i = 0; i < npaths; i++)
 		free(paths[i].nodes);
 	free(paths);
