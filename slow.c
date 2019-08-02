@@ -116,7 +116,8 @@ static int sensitive_count_visits(struct path *path, struct query *query)
 		long dist, outOfQry, inOfQry, insideTR, outsideTR;
 		long rDiff, lDiff;
 		 
-		if (x1 <= query->llx && x2 >= query->llx && x2 >= query->urx) {
+		if ((x1 <= query->llx && x2 > query->urx) || (x1 >= query->urx && x2 < query->llx))
+		 {
 			
 			if (x1 > x2) {
 				long t = x1;
@@ -139,7 +140,7 @@ static int sensitive_count_visits(struct path *path, struct query *query)
 			if (insideTR >= query->minT && insideTR <= query->maxT)
 				cnt++;	
 		}
-		if (x1 > query->llx && x1 <= query->urx && x2 >= query->urx) {
+		if ((x1 > query->llx && x1 <= query->urx) && (x2 > query->urx || x2 < query->llx)) {
 			if (x1 > x2) {
 				long t = x1;
 				x1 = x2;

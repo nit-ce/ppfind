@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <inttypes.h>
+#include <errno.h>
+#include <string.h>
 
-/* a trajectory node */
 struct node {
 	long x, y, t;
 };
@@ -20,331 +22,193 @@ struct query {
 	long minT, maxT;	/* minimum and maximum visit duration */
 };
 
-static int answer(struct path *path, struct query *query);
-static int sensitive_count_visits_x(struct node *bNode, struct node *eNode, struct query *query);
-static int sensitive_count_visits_y(struct node *bNode, struct node *eNode, struct query *query);
-static int sensitive_count_visits_x_y(struct node *bNode, struct node *eNode, struct query *query);
-static int findCrossingPoint(long x1, long x2, long y1, long y2, long t1, long t2, struct query *query);
-static int isInside(long x1, long y1, long x2, long y2, long xA, long yA, long t1, long t2, long minT, long maxT);
-static int isInside_2(long x1, long y1, long x2, long y2, long xA, long yA, long xA_2, long yA_2, long t1, long t2, long minT, long maxT, int flag);
+const R = 6371; //a constant as radius of earth for changing location to x and y
 
-int main()
+/*convert variables that are read from file from string to double*/
+static double converted_substring(char src[], int start, int end)  
 {
-	int numberOfPaths, numberOfQueries;
-	struct path *paths;
-	struct query *queries;
-	int restrict_duration = 0;	/* restrict the duration of visits */
-	int i, j;
+	char dest[end - 1];
+	double converted;
+	int i;
 	
-	/* read input trajectories */
-	scanf("%d", &numberOfPaths);
-	paths = malloc(numberOfPaths * sizeof(paths[0]));
-	for (i = 0; i < numberOfPaths; i++) {
-		scanf("%d", &paths[i].n);
-		paths[i].nodes = malloc(paths[i].n * sizeof(paths[i].nodes[0]));
-		for (j = 0; j < paths[i].n; j++) {
-			scanf("%ld", &paths[i].nodes[j].t);
-			scanf("%ld", &paths[i].nodes[j].x);
-			scanf("%ld", &paths[i].nodes[j].y);
-		}
-	}
-
-	/* read input queries */
-	scanf("%d", &numberOfQueries);
-	queries = malloc(numberOfQueries * sizeof(queries[0]));
-	for (i = 0; i < numberOfQueries; i++) {
-		scanf("%ld", &queries[i].llx);
-		scanf("%ld", &queries[i].lly);
-		scanf("%ld", &queries[i].urx);
-		scanf("%ld", &queries[i].ury);
-		scanf("%ld", &queries[i].minT);
-		scanf("%ld", &queries[i].maxT);
+	for (i = 0; i < end; i++) {
+		dest[i] = src[i + start];
 	}
 	
+	sscanf(dest, "%lf", &converted);
 	
-	 /*answer queries*/
-	for (i = 0; i < numberOfQueries; i++) {
-		int visits = 0;
-		for (j = 0; j < numberOfPaths; j++)
-			visits += answer(&paths[j], &queries[i]);
-		printf("v: %d\n", visits);
-	}	
+	return converted;
 }
 
-static int answer(struct path *path, struct query *query)
+static int answer(struct path *paths, long llx, long lly, long urx, long ury, long minT, long maxT)
 {
 	int cnt = 0;
 	int i;
-	for (i = 0; i < path->n; i++) {
-		if (path->nodes[i].y - path->nodes[i + 1].y == 0) {
-			cnt += sensitive_count_visits_x(&path->nodes[i], &path->nodes[i + 1], query);
-		} else if (path->nodes[i].x - path->nodes[i + 1].x == 0) {
-			cnt += sensitive_count_visits_y(&path->nodes[i], &path->nodes[i + 1], query);
-		} else {
-			cnt += sensitive_count_visits_x_y(&path->nodes[i], &path->nodes[i + 1], query);
-		}
+	
+	for (i = 0; i < paths->n - 1; i++) {
+		cnt += sensitive_count_visits(&paths->nodes[i], &paths->nodes[i + 1], llx, lly, urx, ury, minT, maxT); 
 	}
 	
 	return cnt;
 }
 
-static int sensitive_count_visits_x(struct node *bNode, struct node *eNode, struct query *query)
+ int sensitive_count_visits(struct node *beginNode, struct node *endNode, long llx, long lly, long urx, long ury, long minT, long maxT)
 {
 	int cnt = 0;
+	int x1 = beginNode->x;
+	int y1 = beginNode->y;
+	int x2 = endNode->x;
+	int y2 = endNode->y;
+	int t1 = beginNode->t;
+	int t2 = endNode->t;
 	
-	long x1 = bNode->x;
-	long x2 = eNode->x;
-	long t1 = bNode->t;
-	long t2 = eNode->t;
-	long time = t2 - t1;
-	long dist, outOfQry, inOfQry, insideTR, outsideTR;
-	long rDiff, lDiff;
-		 	
-	if ((x1 <= query->llx && x2 >= query->urx) || (x1 >= query->urx && x2 < query->llx)) {	
-		if (x1 > x2) {
-			long t = x1;
-			x1 = x2;
-			x2 = t;
-		}
-		dist = x2 - x1;
-	
-		
-		lDiff = query->llx - x1;
- 		rDiff = x2 - query->urx;				
-			
-		if (rDiff < 0) 
-			rDiff = 0;
-			
-		outOfQry = lDiff + rDiff;
-		inOfQry = dist - outOfQry;
-		outsideTR = (outOfQry * time) / dist;
-		insideTR = time - outsideTR;
-	
-		if (insideTR >= query->minT && insideTR <= query->maxT)
-			cnt++;	
+	if (x2 >= llx && x2 <= urx && y2 >= lly && y2 <= ury) { /*end point is in query or not*/
+		return 0;
+	} else if (x1 < llx && x2 <= llx) { /*two points are out-left side of query*/
+		return 0;
+	} else if (x1 > urx && x2 >= urx) { /*two points are out-right side of query*/
+		return 0;
+	} else if (y1 < lly && y2 <= lly) { /*two points are out-down side of query*/
+		return 0;
+	} else if (y1 > ury && y2 >= ury) { /*two points are out-up side of query*/
+		return 0;
+	} else { /*line will intersect the query*/
+		cnt += findIntersection(x1, y1, t1, x2, y2 , t2, llx, lly, urx, ury, minT, maxT);
 	}
-	if (x1 > query->llx && x1 <= query->urx && (x2 > query->urx || x2 < query->llx)) {	
 		
-		if (x1 > x2) {
-			long t = x1;
-			x1 = x2;
-			x2 = t;
-		}
-		dist = x2 - x1;
-		
-		lDiff = 0;
-		rDiff = x2 - query->urx;
-			
-		outOfQry = lDiff + rDiff;
-		inOfQry = dist - outOfQry;
-		outsideTR = (outOfQry * time) / dist;
-		insideTR = time - outsideTR;
-		
-		if (insideTR >= query->minT && insideTR <= query->maxT)
-			cnt++;			
-	}
-	
 	return cnt;
 }
 
-static int sensitive_count_visits_y(struct node *bNode, struct node *eNode, struct query *query)
-{	
-	int cnt = 0;
+int findIntersection(long x1, long y1, long t1, long x2, long y2, long t2 , long llx, long lly, long urx, long ury, long minT, long maxT) {
+	double isIntercepted_1, isIntercepted_2, isIntercepted_3, isIntercepted_4;
+	int i = 0, j = 0, cnt = 0;
+	long x[2], y[2];
 	
-	long y1 = bNode->y;
-	long y2 = eNode->y;
-	long t1 = bNode->t;
-	long t2 = eNode->t;
-	long time = t2 - t1;
-	long dist, outOfQry, inOfQry, insideTR, outsideTR;
-	long uDiff, lDiff;
-		
-	if ((y1 <= query->lly &&  y2 > query->ury) || (y1 >= query->ury && y2 < query->lly)) {	
-		if (y1 > y2) {
-			long t = y1;
-			y1 = y2;
-			y2 = t;
-		}
-		dist = y2 - y1;
-		
-		lDiff = query->lly - y1;
- 		uDiff = y2 - query->ury;				
-			
-//		if (uDiff < 0) 
-//			uDiff = 0;
-			
-		outOfQry = lDiff + uDiff;
-		inOfQry = dist - outOfQry;
-		outsideTR = (outOfQry * time) / dist;
-		insideTR = time - outsideTR;
+	/*these pararmeter's value should be between 0 & 1*/
+	isIntercepted_1 = (double) ((ury - lly)*(x1 - llx) + (llx - llx)*(y1 - ury)) / (double)((llx - llx)*(y1 - y2) - (x1 - x2)*(lly - ury));
+	isIntercepted_2 = (double) ((lly - lly)*(x1 - llx) + (urx - llx)*(y1 - lly)) / (double)((urx - llx)*(y1 - y2) - (x1 - x2)*(lly - lly));
+	isIntercepted_3 = (double) ((lly - ury)*(x1 - urx) + (urx - urx)*(y1 - lly)) / (double)((urx - urx)*(y1 - y2) - (x1 - x2)*(ury - lly));
+	isIntercepted_4 = (double) ((ury - ury)*(x1 - urx) + (llx - urx)*(y1 - ury)) / (double)((llx - urx)*(y1 - y2) - (x1 - x2)*(ury - ury));
 	
-		if (insideTR >= query->minT && insideTR <= query->maxT)
-			cnt++;	
+	if (isIntercepted_1 >= 0.0000001 && isIntercepted_1 <= 1) {
+		x[i] = x1 + (isIntercepted_1 * (x2 - x1));
+		y[i] = y1 + (isIntercepted_1 * (y2 - y1));
+		i++;
 	}
-	if (y1 > query->lly && y1 <= query->ury && (y2 > query->ury || y2 < query->llx)) {	
-		if (y1 > y2) {
-			long t = y1;
-			y1 = y2;
-			y2 = t;
-		}
-		dist = y2 - y1;
-		
-		lDiff = 0;
-		uDiff = y2 - query->ury;
-			
-		outOfQry = lDiff + uDiff;
-		inOfQry = dist - outOfQry;
-		outsideTR = (outOfQry * time) / dist;
-		insideTR = time - outsideTR;
-		
-		if (insideTR >= query->minT && insideTR <= query->maxT)
-			cnt++;			
+	if (isIntercepted_2 >= 0.0000001 && isIntercepted_2 <= 1) {
+		x[i] = x1 + (isIntercepted_2 * (x2 - x1));
+		y[i] = y1 + (isIntercepted_2 * (y2 - y1));
+		i++;
+	}
+	if (isIntercepted_3 >= 0.0000001 && isIntercepted_3 <= 1) {
+		x[i] = x1 + (isIntercepted_3 * (x2 - x1));
+		y[i] = y1 + (isIntercepted_3 * (y2 - y1)); 
+		i++;
+	}
+	if (isIntercepted_4 >= 0.0000001 && isIntercepted_4 <= 1) {
+		x[i] = x1 + (isIntercepted_4 * (x2 - x1));
+		y[i] = y1 + (isIntercepted_4 * (y2 - y1));
+		i++;
 	}
 	
-	return cnt;
-}
-
-static int sensitive_count_visits_x_y(struct node *bNode, struct node *eNode, struct query *query) {
-	int cnt = 0;
-	long x1 = bNode->x;
-	long x2 = eNode->x;
-	long y1 = bNode->y;
-	long y2 = eNode->y;
-	long t1 = bNode->t;
-	long t2 = eNode->t;
-	long time = t2 - t1;
-	
-	if (x2 > query->llx && x2 < query->urx && y2 > query->lly && y2 < query->ury) {
-		cnt = 0;
-	} else {	
-		if (y1 > y2) {
-			long t = y1;
-			y1 = y2;
-			y2 = t1;
-		}
-		if (x1 >= query->llx && x1 <= query->urx && y1 >= query->lly && y1 <= query->ury) {
-			 if (x2 > query->urx && y2 >= query->lly && y2 <= query->ury) {
-			 	cnt += findCrossingPoint(x1, x2, y1, y2, t1, t2, query);
-			 } else if (y2 > query->ury &&  x2 >= query->llx && x2 <= query->urx) {
-			 	cnt += findCrossingPoint(x1, x2, y1, y2, t1, t2, query);
-			 } else if (x2 > query->urx && y2 > query->ury ) {
-			 	cnt += findCrossingPoint(x1, x2, y1, y2, t1, t2, query);
-			 } else if (x2 < query->llx && y2 > query->ury) {
-			 	cnt += findCrossingPoint(x1, x2, y1, y2, t1, t2, query);
-			 }
-		} else {
-			cnt += findCrossingPoint(x1, x2, y1, y2, t1, t2, query);
-		}
-	}
-	
-	return cnt;
-}
-
-static int findCrossingPoint(long x1, long x2, long y1, long y2, long t1, long t2, struct query *query) {
-	
-	int cnt = 0;
-	long x3 = query->llx;
-	long x4 = query->urx;
-	long y3 = query->lly;
-	long y4 = query->ury;
-	long xA = 0;
-	long yA = 0;
-	double t = 0;
-	int flag = 0;
-	
-	if (x1 >= x3) {
-		t = (double)(x4 - x1) / (double)(x2 - x1); /*start from inside*/		
-		flag = 0;
-	} else {
-		t = (double)(x3 - x1) / (double)(x2 - x1); /*start from outside*/
-		flag = 1;
-	}
-	
-	if (t < 0) {
-		t = t * -1;
-	}
-	
-	double t_2 = 1 - t; /*start from outside*/
+	long duration = t2 - t1;
 	 
-//	printf("t: %f, t2: %f\n", t, t_2);
-	
-	xA = x1 + t * (x2 - x1);
-	yA = y1 + t * (y2 - y1);
-	long xA2 = x1 + t_2 * (x2 - x1);
-	long yA2 = y1 + t_2 * (y2 - y1);
-	
-	
-	printf("%d, %d, %d, %d\n", xA, yA, xA2, yA2);
-	
-	if (xA >= x3 && xA <= x4 && yA >= y3 && yA <= y4) {
-//		cnt += isInside(x1, y1, x2, y2, xA, yA, t1, t2, query->minT, query->maxT);
-		cnt += isInside_2(x1, y1, x2, y2, xA, yA, xA2, yA2, t1, t2, query->minT, query->maxT, flag);
-	}  
+	if (i == 1) { /*start point is inside the query*/
+		cnt += isInside_1ed(x1, y1, x2, y2, x[0], y[0], duration, minT, maxT);
+	} 
+	if (i == 2) { /*start point is outside the query*/
+		cnt += isInside_2ed(x1, y1, x2, y2, x[0], y[0], x[1], y[1], duration, minT, maxT);
+	} 
 	
 	return cnt;
 }
 
-static int isInside(long x1, long y1, long x2, long y2, long xA, long yA, long t1, long t2, long minT, long maxT)
+int isInside_1ed(long x1, long y1, long x2, long y2, long x_intersection, long y_intersection, long duration, long minT, long maxT)
 {
-	int cnt = 0;
-	long inDiff_x = pow(xA - x1, 2);
-	long outDiff_x = pow(x2 - xA, 2);
-	long inDiff_y = pow(yA - y1, 2);
-	long outDiff_y = pow(y2 - yA, 2);
-	long insideLen = sqrt(inDiff_x + inDiff_y);
-	long outsideLen = sqrt(outDiff_x + outDiff_y);
-	long dist = insideLen + outsideLen;
-	long time = t2 - t1;
-	long insideTR = (time * insideLen / dist);
-	long outsideTR = time - insideTR;
-	
-	printf("%d, %d, %d, %d, %d\n", insideLen, outsideLen, time, insideTR, outsideTR);
+	long x_inside = x1 - x_intersection;
+	long x_outside = x2 - x_intersection;
+	long y_inside = y1 - y_intersection;
+	long y_outside = y2 - y_intersection;
+	long inside = sqrt(pow((double)x_inside, 2) + pow((double)y_inside, 2));
+	long outside = sqrt(pow((double)x_outside, 2) + pow((double)y_outside, 2));
+	long dist = inside + outside;
+	long insideTR = (inside * duration) / dist;
 	
 	if (insideTR >= minT && insideTR <= maxT) {
-		printf("in2\n");
-		cnt = 1;
+		return 1;
 	}
 	
-	 return cnt;
+	return 0;
 }
 
-static int isInside_2(long x1, long y1, long x2, long y2, long xA, long yA, long xA_2, long yA_2, long t1, long t2, long minT, long maxT, int flag)
+int isInside_2ed(long x1, long y1, long x2, long y2, long x_intersection1, long y_intersection1,
+				 long x_intersection2, long y_intersection2, long duration, long minT, long maxT)
 {
-	int cnt = 0;
-	long outDiff_x;
-	long inDiff_x;
-	long outDiff_y;
-	long inDiff_y;
-	long insideLen;
-	long outsideLen;
-	long dist;
-	long time;
-	long insideTR;
-	long outsideTR;
+	long x_inside = abs((x_intersection1 - x_intersection2)) ;
+	long y_inside = abs(y_intersection1 - y_intersection2);
 	
-	if (flag == 1) {
-		outDiff_x = pow((xA - x1) + (x2 - xA_2) , 2);
-		inDiff_x = pow(xA_2 - xA, 2);
-	} else {
-		outDiff_x = pow((x1 - xA) + (xA_2 - x2) , 2);
-		inDiff_x = pow(xA_2 - xA, 2);		
-	}
+	long inside = sqrt(pow((double)x_inside, 2) + pow((double)y_inside, 2));
+	 
+	long dist = sqrt(pow((double)(x1 - x2),2) + pow((double)(y1 - y2),2));
 	
-	outDiff_y = pow((yA - y1) + (y2 - yA_2), 2);
-	inDiff_y = pow(yA_2 - yA, 2);
-	
-	insideLen = sqrt(inDiff_x + inDiff_y);
-	outsideLen = sqrt(outDiff_x + outDiff_y);
-	dist = insideLen + outsideLen;
-	time = t2 - t1;
-	insideTR = (time * insideLen / dist);
-	outsideTR = time - insideTR;
-	
-	printf("%d, %d, %d, %d, %d\n", insideLen, outsideLen, time, insideTR, outsideTR);
+	long insideTR = (inside * duration) / dist;
 	
 	if (insideTR >= minT && insideTR <= maxT) {
-		cnt = 1;
+		return 1;
 	}
 	
-	return cnt;
+	return 0;
+}
+
+int main() 
+{
+	int npaths, nqueries;
+	struct path *paths;		/* input trajectories */
+	int restrict_duration = 0;	/* restrict the duration of visits */
+	int i, j, z = 0;
+	FILE *file;
+	char ch[100000];
+	
+	/*reading input trajectories from file*/
+	file = fopen("test_file.txt", "r");
+	
+	if (file == NULL) {
+		printf("Null");
+		return 1;
+	}	
+	fscanf(file, "%s", &ch);
+	npaths  = converted_substring(ch, 0, 2);
+	paths = malloc(npaths * sizeof(paths[0]));
+	fscanf(file, "%s", &ch);
+	paths[0].n  = converted_substring(ch, 0, 4);
+	paths[0].nodes = malloc(paths[0].n * sizeof(paths[0].nodes[0]));
+	
+	while (fscanf(file, "%*s %s", &ch) != EOF) {		
+		
+		int hour = converted_substring(ch, 8, 2);
+		int min = converted_substring(ch, 3, 2);
+		int sec = converted_substring(ch, 6, 2);
+		double longtitude = converted_substring(ch, 9, 9) * (M_PI / 180);
+		double latitude = converted_substring(ch, 19, 9) * (M_PI / 180);
+			
+		paths[0].nodes[z].t = (hour * 3600) + (min * 60) + sec;
+		paths[0].nodes[z].x = R * cos(longtitude) * -1;
+		paths[0].nodes[z].y = R * cos(latitude);			
+		
+		z++;
+	}
+	/*end of reading file*/
+	
+	scanf("%d", &nqueries);
+	for (i = 0; i < nqueries; i++) {
+		int visits = 0;
+		for (j = 0; j < npaths; j++) {
+			long llx, lly, urx, ury;
+			long minT, maxT;
+			scanf("%ld %ld %ld %ld", &llx, &lly, &urx, &ury);
+			scanf("%ld %ld", &minT, &maxT);
+			visits += answer(&paths[j], llx, lly, urx, ury, minT, maxT);			
+		}
+		printf("%d\n", visits);
+	}	
 }
