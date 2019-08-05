@@ -255,9 +255,11 @@ int main(int argc, char *argv[])
 
 	/* release allocated memory */
 	for (i = 0; i < npaths; i++)
-		seg_free(xsegs[i]);
+		if (xsegs[i])
+			seg_free(xsegs[i]);
 	for (i = 0; i < npaths; i++)
-		seg_free(ysegs[i]);
+		if (ysegs[i])
+			seg_free(ysegs[i]);
 	for (i = 0; i < npaths; i++)
 		free(paths[i].nodes);
 	free(paths);
