@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 static double deg2rad(double degrees) 
 {
@@ -40,47 +41,41 @@ static char *readtok(char *s, char *d)
 
 #define MAXN		(1 << 20)
 
-int main(void)
+static void output(FILE *fp)
 {
 	char line[1024];
 	char tok[1024];
-	double lat0 = 0, lng0 = 0;
-	long ts0;
+	double lat0 = 116.51172, lng0 = 39.92123;
+	long ts0 = (2008 - 1970) * 365 * 24 * 3600;
 	int i, n;
 	long *xs = malloc(MAXN * sizeof(xs[0]));
 	long *ys = malloc(MAXN * sizeof(ys[0]));
 	long *tss = malloc(MAXN * sizeof(tss[0]));
 	for (i = 0; i < MAXN; i++) {
 		char *s = line;
-		int year, mon, day, hour, min, sec;
+		struct tm tm = {0};
 		long x, y, ts;
 		double lat, lng;
-		if (!fgets(line, sizeof(line), stdin))
+		if (!fgets(line, sizeof(line), fp))
 			break;
 		s = readtok(s, tok);		/* taxi ID */
 		s = readtok(s, tok);		/* year */
-		year = atoi(tok);
+		tm.tm_year = atoi(tok) - 1900;
 		s = readtok(s, tok);		/* month */
-		mon = atoi(tok);
+		tm.tm_mon = atoi(tok);
 		s = readtok(s, tok);		/* day */
-		day = atoi(tok);
+		tm.tm_mday = atoi(tok);
 		s = readtok(s, tok);		/* hour */
-		hour = atoi(tok);
+		tm.tm_hour = atoi(tok);
 		s = readtok(s, tok);		/* minute */
-		min = atoi(tok);
+		tm.tm_min = atoi(tok);
 		s = readtok(s, tok);		/* second */
-		sec = atoi(tok);
+		tm.tm_sec = atoi(tok);
 		s = readtok(s, tok);		/* latitude */
 		lat = atof(tok);
 		s = readtok(s, tok);		/* longitude */
 		lng = atof(tok);
-		ts = ((year - 1970) * 400 + mon * 31 + day) * 24 * 3600 +
-			hour * 3600 + min * 60 + sec;
-		if (i == 0) {
-			lat0 = lat;
-			lng0 = lng;
-			ts0 = ts;
-		}
+		ts = mktime(&tm);
 		convert(lat0, lng0, lat, lng, &x, &y);
 		xs[i] = x;
 		ys[i] = y;
@@ -90,5 +85,27 @@ int main(void)
 	printf("%d\n", i);
 	for (i = 0; i < n; i++)
 		printf("%ld %ld %ld\n", tss[i], xs[i], ys[i]);
+	free(xs);
+	free(ys);
+	free(tss);
+}
+
+int main(int argc, char *argv[])
+{
+	int i;
+	if (argc < 2) {
+		output(stdin);
+	} else {
+		printf("%d\n", argc - 1);
+		for (i = 1; i < argc; i++) {
+			FILE *fp = fopen(argv[i], "r");
+			if (!fp) {
+				fprintf(stderr, "tdrive: cannot open <%s>\n", argv[i]);
+				return 1;
+			}
+			output(fp);
+			fclose(fp);
+		}
+	}
 	return 0;
 }
