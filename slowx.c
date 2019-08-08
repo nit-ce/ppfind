@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
 #define MAX(a, b)	((a) < (b) ? (b) : (a))
 
-static int twodims = 0;		/* two dimensional trajectories */
+static int twodims = 1;		/* two dimensional trajectories */
 
 /* a trajectory node */
 struct node {
@@ -138,27 +139,37 @@ static int count_visits(struct path *path, long llx, long lly, long urx,
 	return cnt;
 }
 
+/* current time stamp in milliseconds */
+static long timestamp(void)
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+
 int main(int argc, char *argv[])
 {
 	int npaths, nqueries;
 	struct path *paths;		/* input trajectories */
-	int restrict_duration = 0;	/* restrict the duration of visits */
+	int restrict_duration = 1;	/* restrict the duration of visits */
 	int i, j;
+	long ts0, ts1, ts2, ts3;
 	for (i = 0; i < argc; i++) {
-		if (argv[i][0] == '-' && argv[i][1] == 'd')
-			restrict_duration = 1;
-		if (argv[i][0] == '-' && argv[i][1] == '2')
-			twodims = 1;
+		if (argv[i][0] == '-' && argv[i][1] == 'n')
+			restrict_duration = 0;
+		if (argv[i][0] == '-' && argv[i][1] == '1')
+			twodims = 0;
 		if (argv[i][0] == '-' && argv[i][1] == 'h') {
 			printf("Usage: %s options <input >output\n\n", argv[0]);
 			printf("Options:\n");
-			printf("  -d \t\t apply visit duration restrictions\n");
-			printf("  -2 \t\t two-dimensional trajectories\n");
+			printf("  -n \t\t no visit duration restrictions\n");
+			printf("  -1 \t\t one-dimensional trajectories\n");
 			return 0;
 		}
 	}
 	if (twodims)
 		restrict_duration = 1;
+	ts0 = timestamp();
 	/* read input trajectories */
 	scanf("%d", &npaths);
 	paths = malloc(npaths * sizeof(paths[0]));
@@ -172,7 +183,8 @@ int main(int argc, char *argv[])
 			paths[i].nodes[j].t *= 1000;
 		}
 	}
-
+	ts1 = timestamp();
+	ts2 = timestamp();
 	/* answer input queries */
 	scanf("%d", &nqueries);
 	for (i = 0; i < nqueries; i++) {
@@ -188,7 +200,8 @@ int main(int argc, char *argv[])
 		}
 		printf("%d\n", visits);
 	}
-
+	ts3 = timestamp();
+	fprintf(stderr, "%ld %ld %ld\n", ts1 - ts0, ts2 - ts1, ts3 - ts2);
 	/* release allocated memory */
 	for (i = 0; i < npaths; i++)
 		free(paths[i].nodes);
