@@ -187,6 +187,7 @@ int main(int argc, char *argv[])
 	struct seg **xsegs;		/* one segment tree for each trajectory */
 	struct seg **ysegs;		/* one segment tree for each trajectory */
 	int restrict_duration = 1;	/* restrict the duration of visits */
+	int merge = 0;
 	int i, j;
 	long ts0, ts1, ts2, ts3;
 	for (i = 0; i < argc; i++) {
@@ -194,10 +195,13 @@ int main(int argc, char *argv[])
 			restrict_duration = 0;
 		if (argv[i][0] == '-' && argv[i][1] == '1')
 			twodims = 0;
+		if (argv[i][0] == '-' && argv[i][1] == 'm')
+			merge = 1;
 		if (argv[i][0] == '-' && argv[i][1] == 'h') {
 			printf("Usage: %s options <input >output\n\n", argv[0]);
 			printf("Options:\n");
 			printf("  -n \t\t no visit duration restrictions\n");
+			printf("  -m \t\t merge all trajectories\n");
 			printf("  -1 \t\t one-dimensional trajectories\n");
 			return 0;
 		}
@@ -217,6 +221,31 @@ int main(int argc, char *argv[])
 			scanf("%ld", &paths[i].nodes[j].y);
 			paths[i].nodes[j].t *= 1000;
 		}
+	}
+	/* merge all trajectories using edges of zero duration */
+	if (merge) {
+		int cnt = 0;
+		long t = 0;
+		int idx = 0;
+		struct node *nodes;
+		for (i = 0; i < npaths; i++)
+			cnt += paths[i].n;
+		nodes = malloc(cnt * sizeof(paths[i].nodes[0]));
+		for (i = 0; i < npaths; i++) {
+			long tdiff = t - paths[i].nodes[0].t + 1000;
+			for (j = 0; j < paths[i].n; j++) {
+				nodes[idx].x = paths[i].nodes[j].x;
+				nodes[idx].y = paths[i].nodes[j].y;
+				nodes[idx].t = paths[i].nodes[j].t + tdiff;
+				t = nodes[idx].t;
+				idx++;
+			}
+		}
+		for (i = 0; i < npaths; i++)
+			free(paths[i].nodes);
+		paths[0].nodes = nodes;
+		paths[0].n = cnt;
+		npaths = 1;
 	}
 	ts1 = timestamp();
 	/* construct the segment trees */
@@ -248,11 +277,11 @@ int main(int argc, char *argv[])
 	scanf("%d", &nqueries);
 	for (i = 0; i < nqueries; i++) {
 		int visits = 0;
+		long llx, lly, urx, ury;
+		long minT, maxT;
+		scanf("%ld %ld %ld %ld", &llx, &lly, &urx, &ury);
+		scanf("%ld %ld", &minT, &maxT);
 		for (j = 0; j < npaths; j++) {
-			long llx, lly, urx, ury;
-			long minT, maxT;
-			scanf("%ld %ld %ld %ld", &llx, &lly, &urx, &ury);
-			scanf("%ld %ld", &minT, &maxT);
 			if (restrict_duration) {
 				visits += count_visits_duration(&paths[j], xsegs[j], ysegs[j],
 					llx, lly, urx, ury, minT * 1000, maxT * 1000);
