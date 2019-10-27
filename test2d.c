@@ -157,6 +157,48 @@ static void test09(void)
 	printf("0 5 50 15 0 100\n");
 }
 
+static void test10(void)
+{
+	printf("3\n");
+	printf("3\n");
+	printf("10 10 0\n");
+	printf("20 20 0\n");
+	printf("30 30 0\n");
+	printf("3\n");
+	printf("10 10 10\n");
+	printf("20 20 10\n");
+	printf("30 30 10\n");
+	printf("3\n");
+	printf("10 10 20\n");
+	printf("20 20 20\n");
+	printf("30 30 20\n");
+	printf("4\n");
+	printf("14 5 24 15 5 100\n");
+	printf("14 5 24 25 5 100\n");
+	printf("14 -5 24 15 5 100\n");
+	printf("14 -5 24 25 5 100\n");
+}
+
+static void test11(void)
+{
+	printf("1\n");
+	printf("9\n");
+	printf("10 10 0\n");
+	printf("20 20 0\n");
+	printf("30 30 0\n");
+	printf("30 10 10\n");
+	printf("40 20 10\n");
+	printf("50 30 10\n");
+	printf("50 10 20\n");
+	printf("60 20 20\n");
+	printf("70 30 20\n");
+	printf("4\n");
+	printf("14 5 24 15 5 100\n");
+	printf("14 5 24 25 5 100\n");
+	printf("14 -5 24 15 5 100\n");
+	printf("14 -5 24 25 5 100\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int num;
@@ -183,5 +225,9 @@ int main(int argc, char *argv[])
 		test08();
 	else if (num == 9)
 		test09();
+	else if (num == 10)
+		test10();
+	else if (num == 11)
+		test11();
 	return 0;
 }
