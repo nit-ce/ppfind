@@ -189,11 +189,11 @@ int main(int argc, char *argv[])
 	scanf("%d", &nqueries);
 	for (i = 0; i < nqueries; i++) {
 		int visits = 0;
+		long llx, lly, urx, ury;
+		long minT, maxT;
+		scanf("%ld %ld %ld %ld", &llx, &lly, &urx, &ury);
+		scanf("%ld %ld", &minT, &maxT);
 		for (j = 0; j < npaths; j++) {
-			long llx, lly, urx, ury;
-			long minT, maxT;
-			scanf("%ld %ld %ld %ld", &llx, &lly, &urx, &ury);
-			scanf("%ld %ld", &minT, &maxT);
 			visits += count_visits(&paths[j], llx, lly, urx, ury,
 				restrict_duration ? minT * 1000 : -1,
 				restrict_duration ? maxT * 1000 : -1);
